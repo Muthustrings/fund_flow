@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:fund_flow/transaction_service.dart';
+import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
 
 class AddIncomeScreen extends StatefulWidget {
   const AddIncomeScreen({super.key});
@@ -13,6 +16,15 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
+  final Uuid uuid = const Uuid();
+
+  @override
+  void dispose() {
+    _sourceController.dispose();
+    _amountController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -25,6 +37,24 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
       setState(() {
         _selectedDate = picked;
       });
+    }
+  }
+
+  void _saveIncome() {
+    if (_formKey.currentState!.validate()) {
+      final transactionService = Provider.of<TransactionService>(
+        context,
+        listen: false,
+      );
+      final newTransaction = Transaction(
+        id: uuid.v4(),
+        description: _sourceController.text,
+        amount: double.parse(_amountController.text),
+        date: _selectedDate,
+        type: TransactionType.income,
+      );
+      transactionService.addTransaction(newTransaction);
+      Navigator.of(context).pop(); // Go back to previous screen
     }
   }
 
@@ -74,11 +104,7 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
                 ),
                 const SizedBox(height: 32),
                 ElevatedButton(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      // Process data
-                    }
-                  },
+                  onPressed: _saveIncome,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF26A69A),
                     minimumSize: const Size(double.infinity, 50),
@@ -101,7 +127,42 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
-                _buildRecentIncomeList(),
+                Consumer<TransactionService>(
+                  builder: (context, transactionService, child) {
+                    final recentIncomes = transactionService.transactions
+                        .where((t) => t.type == TransactionType.income)
+                        .take(5)
+                        .toList();
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
+                      child: recentIncomes.isEmpty
+                          ? const Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: Text('No recent income added.'),
+                            )
+                          : ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: recentIncomes.length,
+                              itemBuilder: (context, index) {
+                                final item = recentIncomes[index];
+                                return ListTile(
+                                  title: Text(item.description),
+                                  trailing: Text(
+                                    '₹ ${item.amount.toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    );
+                  },
+                ),
               ],
             ),
           ),
@@ -135,6 +196,11 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
         if (value == null || value.isEmpty) {
           return 'Please enter $labelText';
         }
+        if (keyboardType == TextInputType.number) {
+          if (double.tryParse(value) == null) {
+            return 'Please enter a valid number';
+          }
+        }
         return null;
       },
     );
@@ -158,37 +224,6 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
           '${_selectedDate.toLocal()}'.split(' ')[0],
           style: const TextStyle(fontSize: 16),
         ),
-      ),
-    );
-  }
-
-  Widget _buildRecentIncomeList() {
-    // Dummy data for recent income
-    final recentIncomes = [
-      {'source': 'Salary', 'amount': '60.000'},
-      {'source': 'Freelance', 'amount': '25.000'},
-      {'source': 'Freelance', 'amount': '20.000'},
-    ];
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.0),
-      ),
-      child: ListView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: recentIncomes.length,
-        itemBuilder: (context, index) {
-          final item = recentIncomes[index];
-          return ListTile(
-            title: Text(item['source']!),
-            trailing: Text(
-              '₹ ${item['amount']}',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          );
-        },
       ),
     );
   }

@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:fund_flow/home_screen.dart';
+import 'package:fund_flow/splash_screen.dart';
+import 'package:fund_flow/transaction_service.dart';
+import 'package:provider/provider.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (context) => TransactionService(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -13,7 +21,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'FundFlow',
       theme: ThemeData(primarySwatch: Colors.teal, fontFamily: 'Poppins'),
-      home: const HomeScreen(userName: 'Guest'), // Always show HomeScreen first
+      home: const SplashScreen(),
     );
   }
 }

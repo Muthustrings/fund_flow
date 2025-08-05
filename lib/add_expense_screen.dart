@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:fund_flow/transaction_service.dart';
+import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
 
 class AddExpenseScreen extends StatefulWidget {
   const AddExpenseScreen({super.key});
@@ -9,10 +12,27 @@ class AddExpenseScreen extends StatefulWidget {
 
 class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _categoryController = TextEditingController();
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
   DateTime _selectedDate = DateTime.now();
+  String? _selectedCategory;
+  final List<String> _categories = [
+    'Food',
+    'Transport',
+    'Shopping',
+    'Utilities',
+    'Entertainment',
+    'Rent',
+    'Other'
+  ];
+  final Uuid uuid = const Uuid();
+
+  @override
+  void dispose() {
+    _amountController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -28,11 +48,27 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     }
   }
 
+  void _saveExpense() {
+    if (_formKey.currentState!.validate()) {
+      final transactionService =
+          Provider.of<TransactionService>(context, listen: false);
+      final newTransaction = Transaction(
+        id: uuid.v4(),
+        description: _selectedCategory!,
+        amount: double.parse(_amountController.text),
+        date: _selectedDate,
+        type: TransactionType.expense,
+      );
+      transactionService.addTransaction(newTransaction);
+      Navigator.of(context).pop(); // Go back to previous screen
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add Expense', style: TextStyle(color: Colors.red)),
+        title: const Text('Add Expense', style: TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
@@ -49,7 +85,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: <Widget>[
-                _buildCategoryField(),
+                _buildCategoryDropdown(),
                 const SizedBox(height: 16),
                 _buildTextField(
                   controller: _amountController,
@@ -73,11 +109,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 ),
                 const SizedBox(height: 32),
                 ElevatedButton(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      // Process data
-                    }
-                  },
+                  onPressed: _saveExpense,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4CAF50),
                     minimumSize: const Size(double.infinity, 50),
@@ -95,7 +127,56 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   ),
                 ),
                 const SizedBox(height: 32),
-                _buildRecentExpensesList(),
+                Consumer<TransactionService>(
+                  builder: (context, transactionService, child) {
+                    final recentExpenses = transactionService.transactions
+                        .where((t) => t.type == TransactionType.expense)
+                        .take(5)
+                        .toList();
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
+                      child: recentExpenses.isEmpty
+                          ? const Padding(
+                              padding: EdgeInsets.all(16.0),
+                              child: Text('No recent expenses added.'),
+                            )
+                          : ListView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: recentExpenses.length,
+                              itemBuilder: (context, index) {
+                                final item = recentExpenses[index];
+                                return ListTile(
+                                  title: Text(item.description),
+                                  trailing: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.end,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        '₹${item.amount.toStringAsFixed(2)}',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black,
+                                          fontSize: 16,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${item.date.day}/${item.date.month}/${item.date.year}',
+                                        style: const TextStyle(
+                                            color: Colors.grey, fontSize: 12),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
+                    );
+                  },
+                ),
               ],
             ),
           ),
@@ -104,17 +185,12 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     );
   }
 
-  Widget _buildCategoryField() {
-    return TextFormField(
-      controller: _categoryController,
+  Widget _buildCategoryDropdown() {
+    return DropdownButtonFormField<String>(
+      value: _selectedCategory,
       decoration: InputDecoration(
         labelText: 'Category',
-        prefixIcon: const Icon(Icons.fastfood_outlined, color: Colors.grey),
-        suffixIcon: const Icon(
-          Icons.arrow_forward_ios,
-          color: Colors.grey,
-          size: 16,
-        ),
+        prefixIcon: const Icon(Icons.category_outlined, color: Colors.grey),
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
@@ -122,9 +198,21 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           borderSide: BorderSide.none,
         ),
       ),
+      hint: const Text('Select a category'),
+      onChanged: (String? newValue) {
+        setState(() {
+          _selectedCategory = newValue;
+        });
+      },
+      items: _categories.map<DropdownMenuItem<String>>((String value) {
+        return DropdownMenuItem<String>(
+          value: value,
+          child: Text(value),
+        );
+      }).toList(),
       validator: (value) {
         if (value == null || value.isEmpty) {
-          return 'Please enter Category';
+          return 'Please select a category';
         }
         return null;
       },
@@ -154,6 +242,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         if (value == null || value.isEmpty) {
           return 'Please enter $labelText';
         }
+        if (keyboardType == TextInputType.number) {
+          if (double.tryParse(value) == null) {
+            return 'Please enter a valid number';
+          }
+        }
         return null;
       },
     );
@@ -180,50 +273,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           '${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}',
           style: const TextStyle(fontSize: 16),
         ),
-      ),
-    );
-  }
-
-  Widget _buildRecentExpensesList() {
-    final recentExpenses = [
-      {'category': 'Groceries', 'amount': '2,000', 'date': '17/04/2024'},
-      {'category': 'Rent', 'amount': '12,000', 'date': '17/04/2024'},
-      {'category': 'Dining', 'amount': '1,500', 'date': '17/04/2024'},
-    ];
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.0),
-      ),
-      child: ListView.builder(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: recentExpenses.length,
-        itemBuilder: (context, index) {
-          final item = recentExpenses[index];
-          return ListTile(
-            title: Text(item['category']!),
-            trailing: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  '₹${item['amount']}',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red,
-                    fontSize: 16,
-                  ),
-                ),
-                Text(
-                  item['date']!,
-                  style: const TextStyle(color: Colors.grey, fontSize: 12),
-                ),
-              ],
-            ),
-          );
-        },
       ),
     );
   }

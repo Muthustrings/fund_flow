@@ -9,8 +9,8 @@ class LoginScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final TextEditingController _emailController = TextEditingController();
-    final TextEditingController _passwordController = TextEditingController();
+    final TextEditingController emailController = TextEditingController();
+    final TextEditingController passwordController = TextEditingController();
 
     return Scaffold(
       body: Container(
@@ -53,7 +53,7 @@ class LoginScreen extends StatelessWidget {
                 ),
                 const Spacer(flex: 1), // Reduced from 2 to 1 to move content up
                 TextFormField(
-                  controller: _emailController,
+                  controller: emailController,
                   decoration: InputDecoration(
                     hintText: 'Email',
                     prefixIcon: const Icon(
@@ -73,7 +73,7 @@ class LoginScreen extends StatelessWidget {
                   height: 40, // Increased space between email and password
                 ), // More space between email and password
                 TextFormField(
-                  controller: _passwordController,
+                  controller: passwordController,
                   obscureText: true,
                   decoration: InputDecoration(
                     hintText: 'Password',
@@ -105,8 +105,8 @@ class LoginScreen extends StatelessWidget {
                 ), // Increased space between Forgot password? and Login button
                 ElevatedButton(
                   onPressed: () {
-                    if (_emailController.text == userSession.email &&
-                        _passwordController.text == userSession.password) {
+                    if (emailController.text == userSession.email &&
+                        passwordController.text == userSession.password) {
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(

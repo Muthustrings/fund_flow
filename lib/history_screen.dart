@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:fund_flow/transaction_service.dart';
 
 class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
@@ -34,50 +36,35 @@ class HistoryScreen extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Expanded(
-              child: ListView(
-                children: const [
-                  TransactionTile(
-                    icon: Icons.arrow_upward,
-                    color: Colors.green,
-                    title: 'Salary',
-                    type: 'INCOME',
-                    amount: '₹50,000',
-                    date: 'Today',
-                  ),
-                  TransactionTile(
-                    icon: Icons.arrow_downward,
-                    color: Colors.red,
-                    title: 'Food',
-                    subtitle: 'Lunch with friends',
-                    type: 'EXPENSE',
-                    amount: '₹350',
-                    date: 'Today',
-                  ),
-                  TransactionTile(
-                    icon: Icons.arrow_upward,
-                    color: Colors.green,
-                    title: 'Gift',
-                    type: 'INCOME',
-                    amount: '₹2,000',
-                    date: 'Yesterday',
-                  ),
-                  TransactionTile(
-                    icon: Icons.arrow_downward,
-                    color: Colors.red,
-                    title: 'Shopping',
-                    type: 'EXPENSE',
-                    amount: '₹1,200',
-                    date: 'Yesterday',
-                  ),
-                  TransactionTile(
-                    icon: Icons.arrow_upward,
-                    color: Colors.green,
-                    title: 'Freelance',
-                    type: 'INCOME',
-                    amount: '₹1,500',
-                    date: '22 Apr 2024',
-                  ),
-                ],
+              child: Consumer<TransactionService>(
+                builder: (context, transactionService, child) {
+                  final allTransactions = transactionService
+                      .getAllTransactions();
+                  if (allTransactions.isEmpty) {
+                    return const Center(child: Text('No transactions yet.'));
+                  }
+                  return ListView.builder(
+                    itemCount: allTransactions.length,
+                    itemBuilder: (context, index) {
+                      final item = allTransactions[index];
+                      return TransactionTile(
+                        icon: item.type == TransactionType.income
+                            ? Icons.arrow_upward
+                            : Icons.arrow_downward,
+                        color: item.type == TransactionType.income
+                            ? Colors.green
+                            : Colors.red,
+                        title: item.description,
+                        type: item.type == TransactionType.income
+                            ? 'INCOME'
+                            : 'EXPENSE',
+                        amount: '₹${item.amount.toStringAsFixed(2)}',
+                        date:
+                            '${item.date.day}/${item.date.month}/${item.date.year}',
+                      );
+                    },
+                  );
+                },
               ),
             ),
           ],
