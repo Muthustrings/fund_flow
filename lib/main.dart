@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:fund_flow/home_screen.dart';
 import 'package:fund_flow/splash_screen.dart';
 import 'package:fund_flow/transaction_service.dart';
+import 'package:fund_flow/user_session.dart'; // Import UserSession
 import 'package:provider/provider.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await userSession.loadUser(); // Load user data at app start
+
   runApp(
     ChangeNotifierProvider(
-      create: (context) => TransactionService(),
+      create: (context) => TransactionService(userSession: userSession),
       child: const MyApp(),
     ),
   );

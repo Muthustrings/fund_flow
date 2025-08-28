@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fund_flow/user_session.dart'; // Import user_session
 
 class Transaction {
   final String id;
@@ -6,6 +7,7 @@ class Transaction {
   final double amount;
   final DateTime date;
   final TransactionType type;
+  final String category; // Add category field
 
   Transaction({
     required this.id,
@@ -13,13 +15,20 @@ class Transaction {
     required this.amount,
     required this.date,
     required this.type,
+    this.category = 'Uncategorized', // Default category
   });
+
+  // Helper to check if the transaction is an income
+  bool get isIncome => type == TransactionType.income;
 }
 
 enum TransactionType { income, expense }
 
 class TransactionService extends ChangeNotifier {
+  final UserSession userSession; // Add UserSession
   final List<Transaction> _transactions = [];
+
+  TransactionService({required this.userSession}); // Constructor to inject UserSession
 
   List<Transaction> get transactions => List.unmodifiable(_transactions);
 

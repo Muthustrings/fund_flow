@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:fund_flow/home_screen.dart'; // Import HomeScreen
 import 'package:fund_flow/onboarding_screen.dart';
+import 'package:fund_flow/user_session.dart'; // Import UserSession
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -16,11 +18,23 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   _navigateToHome() async {
-    await Future.delayed(const Duration(milliseconds: 1500), () {});
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => const OnboardingScreen()),
-    );
+    await Future.delayed(const Duration(milliseconds: 1500)); // Keep the delay
+
+    if (userSession.name != null && userSession.name!.isNotEmpty) {
+      // User is logged in, navigate to Home Screen
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => HomeScreen(userName: userSession.name!),
+        ),
+      );
+    } else {
+      // User is not logged in, navigate to Onboarding Screen
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const OnboardingScreen()),
+      );
+    }
   }
 
   @override

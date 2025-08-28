@@ -12,7 +12,12 @@ class LoginScreen extends StatelessWidget {
     final TextEditingController emailController = TextEditingController();
     final TextEditingController passwordController = TextEditingController();
 
+    // Add a GlobalKey for the ScaffoldMessenger
+    final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+        GlobalKey<ScaffoldMessengerState>();
+
     return Scaffold(
+      key: scaffoldMessengerKey, // Assign the key to Scaffold
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -104,7 +109,9 @@ class LoginScreen extends StatelessWidget {
                   height: 32,
                 ), // Increased space between Forgot password? and Login button
                 ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
+                    await userSession.loadUser(); // Load saved user data
+
                     if (emailController.text == userSession.email &&
                         passwordController.text == userSession.password) {
                       Navigator.pushReplacement(
@@ -115,7 +122,8 @@ class LoginScreen extends StatelessWidget {
                         ),
                       );
                     } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      scaffoldMessengerKey.currentState?.showSnackBar(
+                        // Use the key to show SnackBar
                         const SnackBar(
                           content: Text('Invalid email or password'),
                         ),

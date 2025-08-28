@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fund_flow/home_screen.dart'; // Import HomeScreen
 import 'package:fund_flow/transaction_service.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -54,7 +55,13 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
         type: TransactionType.income,
       );
       transactionService.addTransaction(newTransaction);
-      Navigator.of(context).pop(); // Go back to previous screen
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => HomeScreen(userName: transactionService.userSession.name ?? 'User'),
+        ),
+        (route) => false, // Remove all routes below the new route
+      );
     }
   }
 

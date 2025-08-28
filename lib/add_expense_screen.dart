@@ -50,11 +50,18 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
   void _saveExpense() {
     if (_formKey.currentState!.validate()) {
+      if (_selectedCategory == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select a category')),
+        );
+        return;
+      }
+
       final transactionService =
           Provider.of<TransactionService>(context, listen: false);
       final newTransaction = Transaction(
         id: uuid.v4(),
-        description: _selectedCategory!,
+        description: _selectedCategory!, // _selectedCategory is guaranteed not null here due to validation and the check above
         amount: double.parse(_amountController.text),
         date: _selectedDate,
         type: TransactionType.expense,

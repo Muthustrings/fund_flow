@@ -3,8 +3,30 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:fund_flow/home_screen.dart';
 import 'package:fund_flow/user_session.dart';
 
-class BudgetScreen extends StatelessWidget {
+class BudgetScreen extends StatefulWidget {
   const BudgetScreen({super.key});
+
+  @override
+  State<BudgetScreen> createState() => _BudgetScreenState();
+}
+
+class _BudgetScreenState extends State<BudgetScreen> {
+  final TextEditingController _incomeController = TextEditingController();
+  final TextEditingController _expenseController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _incomeController.text = userSession.monthlyIncomeTarget?.toStringAsFixed(0) ?? '60000';
+    _expenseController.text = userSession.monthlyExpenseLimit?.toStringAsFixed(0) ?? '40000';
+  }
+
+  @override
+  void dispose() {
+    _incomeController.dispose();
+    _expenseController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,19 +77,19 @@ class BudgetScreen extends StatelessWidget {
                 _buildTargetCard(
                   icon: Icons.attach_money,
                   title: 'Monthly Income Target',
-                  amount: '60.000',
+                  controller: _incomeController,
                 ),
                 const SizedBox(height: 16),
                 _buildTargetCard(
                   icon: Icons.arrow_forward,
                   title: 'Monthly Expense Limit',
-                  amount: '40.000',
+                  controller: _expenseController,
                 ),
                 const SizedBox(height: 32),
                 _buildSavingsGoal(),
                 const SizedBox(height: 32),
                 ElevatedButton(
-                  onPressed: () {},
+                  onPressed: _saveBudget,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4CAF50),
                     minimumSize: const Size(double.infinity, 50),
@@ -92,10 +114,27 @@ class BudgetScreen extends StatelessWidget {
     );
   }
 
+  Future<void> _saveBudget() async {
+    final income = double.tryParse(_incomeController.text);
+    final expense = double.tryParse(_expenseController.text);
+
+    if (income != null && expense != null) {
+      await userSession.saveBudget(incomeTarget: income, expenseLimit: expense);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Budget saved successfully!')),
+      );
+      setState(() {}); // Rebuild to update savings goal
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter valid numbers for budget.')),
+      );
+    }
+  }
+
   Widget _buildTargetCard({
     required IconData icon,
     required String title,
-    required String amount,
+    required TextEditingController controller,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -121,15 +160,17 @@ class BudgetScreen extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           TextFormField(
-            initialValue: '₹ $amount',
+            controller: controller,
+            keyboardType: TextInputType.number,
             decoration: InputDecoration(
+              prefixText: '₹ ',
               filled: true,
               fillColor: Colors.white,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8.0),
                 borderSide: BorderSide.none,
               ),
-              suffixIcon: const Icon(Icons.remove),
+              suffixIcon: const Icon(Icons.edit),
             ),
           ),
         ],
@@ -138,6 +179,19 @@ class BudgetScreen extends StatelessWidget {
   }
 
   Widget _buildSavingsGoal() {
+    final income = userSession.monthlyIncomeTarget ?? 0;
+    final expense = userSession.monthlyExpenseLimit ?? 0;
+    final savings = income - expense;
+    final total = income;
+
+    double savingsPercentage = 0;
+    double expensePercentage = 0;
+
+    if (total > 0) {
+      savingsPercentage = (savings / total) * 100;
+      expensePercentage = (expense / total) * 100;
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -170,13 +224,13 @@ class BudgetScreen extends StatelessWidget {
                       sections: [
                         PieChartSectionData(
                           color: Colors.green,
-                          value: 33,
+                          value: savingsPercentage,
                           title: '',
                           radius: 20,
                         ),
                         PieChartSectionData(
                           color: Colors.grey.shade300,
-                          value: 67,
+                          value: expensePercentage,
                           title: '',
                           radius: 20,
                         ),
@@ -185,17 +239,17 @@ class BudgetScreen extends StatelessWidget {
                       centerSpaceRadius: 50,
                     ),
                   ),
-                  const Column(
+                  Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        '67%',
-                        style: TextStyle(
+                        '${expensePercentage.toStringAsFixed(0)}%',
+                        style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Text('Expenses'),
+                      const Text('Expenses'),
                     ],
                   ),
                 ],
@@ -203,7 +257,7 @@ class BudgetScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
-          const Center(child: Text('33% Savings')),
+          Center(child: Text('${savingsPercentage.toStringAsFixed(0)}% Savings')),
         ],
       ),
     );

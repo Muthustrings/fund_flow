@@ -17,6 +17,8 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -62,18 +64,33 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  _buildTextField(label: 'Email', icon: Icons.email_outlined),
-                  const SizedBox(height: 20),
-                  _buildTextField(
-                    label: 'Password',
-                    icon: Icons.lock_outline,
-                    obscure: true,
+                  TextFormField(
+                    controller: _emailController,
+                    decoration: const InputDecoration(
+                      hintText: 'Email',
+                      prefixIcon: Icon(Icons.email_outlined),
+                      border: OutlineInputBorder(),
+                    ),
                   ),
                   const SizedBox(height: 20),
-                  _buildTextField(
-                    label: 'Confirm Password',
-                    icon: Icons.lock_outline,
-                    obscure: true,
+                  TextFormField(
+                    controller: _passwordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      hintText: 'Password',
+                      prefixIcon: Icon(Icons.lock_outline),
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  TextFormField(
+                    controller: _confirmPasswordController,
+                    obscureText: true,
+                    decoration: const InputDecoration(
+                      hintText: 'Confirm Password',
+                      prefixIcon: Icon(Icons.lock_outline),
+                      border: OutlineInputBorder(),
+                    ),
                   ),
                   const SizedBox(height: 10),
                   Row(
@@ -92,12 +109,32 @@ class _SignupScreenState extends State<SignupScreen> {
                   ),
                   const SizedBox(height: 20),
                   ElevatedButton(
-                    onPressed: () {
-                      // Save credentials
-                      userSession.name = _nameController.text;
-                      userSession.email = _emailController.text;
-                      userSession.password =
-                          _passwordController.text; // <-- Fix here
+                    onPressed: () async {
+                      if (_passwordController.text !=
+                          _confirmPasswordController.text) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Passwords do not match'),
+                          ),
+                        );
+                        return;
+                      }
+                      if (!_isChecked) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Please agree to the Terms & Conditions',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+
+                      await userSession.saveUser(
+                        name: _nameController.text,
+                        email: _emailController.text,
+                        password: _passwordController.text,
+                      );
 
                       Navigator.pushReplacement(
                         context,
@@ -154,32 +191,6 @@ class _SignupScreenState extends State<SignupScreen> {
               ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTextField({
-    required String label,
-    required IconData icon,
-    bool obscure = false,
-  }) {
-    return TextFormField(
-      obscureText: obscure,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: Colors.grey),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF2E8B57)),
         ),
       ),
     );
